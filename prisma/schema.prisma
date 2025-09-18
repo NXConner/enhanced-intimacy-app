@@ -1,0 +1,277 @@
+// Enhanced Intimacy Coaching Application Database Schema
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+    output = "/home/ubuntu/enhanced_intimacy_app/app/node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  password         String?
+  name             String?
+  fullName         String?
+  image            String?
+  emailVerified    DateTime?
+  subscriptionTier String    @default("free") // free, premium, professional
+  isActive         Boolean   @default(true)
+  privacySettings  Json?     // Encrypted privacy preferences
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  accounts                    Account[]
+  sessions                    Session[]
+  coachingSessions            CoachingSession[]
+  progressTracking            ProgressTracking[]
+  arousalData                 ArousalData[]
+  coachingPreferences         CoachingPreferences?
+  educationalProgress         EducationalProgress[]
+  notifications               Notification[]
+  feedbackSubmissions         FeedbackSubmission[]
+  userPositionRecommendations UserPositionRecommendation[]
+
+  @@map("users")
+}
+
+model CoachingSession {
+  id                String   @id @default(cuid())
+  userId            String
+  sessionType       String // video_analysis, position_guidance, arousal_coaching, relationship_coaching
+  status            String   @default("active") // active, completed, paused
+  startTime         DateTime @default(now())
+  endTime           DateTime?
+  durationMinutes   Int?
+  sessionData       Json? // Encrypted session details
+  aiInsights        Json? // AI-generated insights and recommendations
+  satisfactionScore Int? // 1-10 rating
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  arousalData    ArousalData[]
+  feedbackEvents FeedbackEvent[]
+
+  @@map("coaching_sessions")
+}
+
+model ArousalData {
+  id                String   @id @default(cuid())
+  userId            String
+  coachingSessionId String?
+  arousalLevel      Float // 0.0 - 10.0 scale
+  timestamp         DateTime @default(now())
+  context           String? // manual_entry, ai_detected, biometric_sensor
+  metadata          Json? // Additional contextual data
+  isVerified        Boolean  @default(false)
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coachingSession CoachingSession? @relation(fields: [coachingSessionId], references: [id])
+
+  @@map("arousal_data")
+}
+
+model ProgressTracking {
+  id               String   @id @default(cuid())
+  userId           String
+  metricType       String // arousal_consistency, technique_improvement, satisfaction_scores, goal_progress
+  value            Float
+  targetValue      Float?
+  measurementDate  DateTime @default(now())
+  weeklyAverage    Float?
+  monthlyAverage   Float?
+  progressNotes    String?
+  achievementLevel String? // beginner, intermediate, advanced, expert
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("progress_tracking")
+}
+
+model CoachingPreferences {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  preferredCoachingStyle String  @default("gentle") // gentle, direct, motivational, educational
+  focusAreas            Json? // Array of focus areas: ["arousal_control", "technique_improvement", "communication", "emotional_connection"]
+  privacyLevel          String   @default("high") // high, medium, low
+  notificationSettings  Json? // Notification preferences
+  goalSettings          Json? // Personal goals and targets
+  adaptationLevel       String   @default("moderate") // conservative, moderate, progressive
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("coaching_preferences")
+}
+
+model PositionRecommendation {
+  id               String   @id @default(cuid())
+  name             String
+  category         String // beginner, intermediate, advanced, therapeutic
+  description      String
+  instructions     String @db.Text
+  benefitsFor      Json? // Array of benefits: ["arousal_control", "stamina", "intimacy", "comfort"]
+  difficultyLevel  String
+  avgRating        Float    @default(0.0)
+  totalRatings     Int      @default(0)
+  imageUrl         String?
+  videoUrl         String?
+  tags             Json? // searchable tags
+  isVerified       Boolean  @default(false)
+  isPremium        Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  userRecommendations UserPositionRecommendation[]
+
+  @@map("position_recommendations")
+}
+
+model UserPositionRecommendation {
+  id                       String   @id @default(cuid())
+  userId                   String
+  positionRecommendationId String
+  aiConfidenceScore        Float // AI's confidence in this recommendation for user
+  personalizedTips         String? @db.Text
+  userRating               Int? // 1-5 stars
+  userNotes                String?
+  timesAttempted           Int      @default(0)
+  successRate              Float?
+  lastAttempted            DateTime?
+  recommendedAt            DateTime @default(now())
+
+  user                   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  positionRecommendation PositionRecommendation @relation(fields: [positionRecommendationId], references: [id])
+
+  @@unique([userId, positionRecommendationId])
+  @@map("user_position_recommendations")
+}
+
+model FeedbackEvent {
+  id                String   @id @default(cuid())
+  coachingSessionId String
+  eventType         String // technique_tip, arousal_guidance, position_adjustment, encouragement
+  timestamp         DateTime @default(now())
+  message           String @db.Text
+  aiConfidence      Float
+  userReaction      String? // positive, neutral, negative, dismissed
+  effectiveness     Float? // User feedback on effectiveness (0-1)
+
+  coachingSession CoachingSession @relation(fields: [coachingSessionId], references: [id], onDelete: Cascade)
+
+  @@map("feedback_events")
+}
+
+model EducationalContent {
+  id               String   @id @default(cuid())
+  title            String
+  contentType      String // article, video, interactive, quiz, exercise
+  category         String // communication, techniques, anatomy, psychology, relationships
+  difficultyLevel  String // beginner, intermediate, advanced
+  content          String @db.Text
+  videoUrl         String?
+  imageUrls        Json? // Array of image URLs
+  estimatedMinutes Int
+  isPremium        Boolean  @default(false)
+  tags             Json? // Searchable tags
+  avgRating        Float    @default(0.0)
+  totalViews       Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  userProgress EducationalProgress[]
+
+  @@map("educational_content")
+}
+
+model EducationalProgress {
+  id                    String    @id @default(cuid())
+  userId                String
+  educationalContentId  String
+  progressPercentage    Float     @default(0.0)
+  completed             Boolean   @default(false)
+  lastAccessedAt        DateTime  @default(now())
+  completedAt           DateTime?
+  userRating            Int? // 1-5 stars
+  timeSpentMinutes      Int       @default(0)
+  quizScores            Json? // Quiz results if applicable
+
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  educationalContent  EducationalContent  @relation(fields: [educationalContentId], references: [id])
+
+  @@unique([userId, educationalContentId])
+  @@map("educational_progress")
+}
+
+model Notification {
+  id           String    @id @default(cuid())
+  userId       String
+  type         String // coaching_reminder, progress_milestone, new_content, system_update
+  title        String
+  message      String @db.Text
+  isRead       Boolean   @default(false)
+  priority     String    @default("normal") // low, normal, high, urgent
+  actionUrl    String?
+  scheduledFor DateTime?
+  sentAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model FeedbackSubmission {
+  id            String   @id @default(cuid())
+  userId        String
+  feedbackType  String // bug_report, feature_request, coaching_feedback, general
+  subject       String
+  message       String @db.Text
+  status        String   @default("submitted") // submitted, reviewed, resolved, closed
+  priority      String   @default("normal")
+  attachmentUrl String?
+  responseNotes String? @db.Text
+  resolvedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("feedback_submissions")
+}
