@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { 
   Video, 
   Camera, 
@@ -69,6 +70,12 @@ export default function VideoAnalysisClient() {
   const [liveSeries, setLiveSeries] = useState<{ t: number; arousal: number; connection: number; communication: number }[]>([])
   const workerRef = useRef<Worker | null>(null)
   const frameTimerRef = useRef<number | null>(null)
+  const [showArousal, setShowArousal] = useState(true)
+  const [showConnection, setShowConnection] = useState(true)
+  const [showCommunication, setShowCommunication] = useState(true)
+  const [smoothing, setSmoothing] = useState(false)
+  const [localOnly, setLocalOnly] = useState(false)
+  const [modelInfo, setModelInfo] = useState<any | null>(null)
   
   const videoRef = useRef<HTMLVideoElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -82,7 +89,7 @@ export default function VideoAnalysisClient() {
         worker.onmessage = (e: MessageEvent) => {
           if (e.data?.type === 'metrics' && e.data?.payload) {
             const m = e.data.payload as { t: number; arousal: number; connection: number; communication: number }
-            setLiveSeries(prev => [...prev, m].slice(-60))
+            setLiveSeries(prev => [...prev, m].slice(-120))
           }
         }
         workerRef.current = worker
@@ -107,6 +114,18 @@ export default function VideoAnalysisClient() {
       stopRecording()
     }
   }, [])
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/ai/tensorflow?action=model-info&modelId=${encodeURIComponent(selectedModel)}`)
+        const data = await res.json()
+        setModelInfo(data?.info || null)
+      } catch {
+        setModelInfo(null)
+      }
+    })()
+  }, [selectedModel])
 
   const startCamera = async () => {
     try {
@@ -354,6 +373,40 @@ export default function VideoAnalysisClient() {
                             ))}
                           </SelectContent>
                         </Select>
+                        {modelInfo && (
+                          <div className="mt-2 p-2 rounded bg-purple-50 text-[11px] text-purple-900 space-y-1">
+                            <div>Version: <span className="font-medium">{modelInfo?.config?.modelPath?.split('/').pop() || modelInfo?.modelId}</span></div>
+                            <div>Quantized: <span className="font-medium">{String(modelInfo?.config?.quantized)}</span></div>
+                            <div>Avg Inference: <span className="font-medium">{Math.round(modelInfo?.performance?.averageInferenceTime || 0)} ms</span></div>
+                            <div>Accuracy: <span className="font-medium">{Math.round((modelInfo?.performance?.accuracy || 0) * 100)}%</span></div>
+                          </div>
+                        )}
+                      </div>
+                        <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Local-only Mode</div>
+                          <Switch checked={localOnly} onCheckedChange={setLocalOnly} />
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Smoothing</div>
+                          <Switch checked={smoothing} onCheckedChange={setSmoothing} />
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Show Arousal</div>
+                          <Switch checked={showArousal} onCheckedChange={setShowArousal} />
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Show Connection</div>
+                          <Switch checked={showConnection} onCheckedChange={setShowConnection} />
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Show Communication</div>
+                          <Switch checked={showCommunication} onCheckedChange={setShowCommunication} />
+                        </div>
+                          <div className="col-span-2">
+                            <Button size="sm" variant="outline" onClick={() => setThumbnails([])}>Clear All Thumbnails</Button>
+                          </div>
+                      </div>
                       </div>
                     </div>
                     <div className="relative bg-black rounded-lg overflow-hidden mb-4">
@@ -602,27 +655,44 @@ export default function VideoAnalysisClient() {
                     </Card>
 
                     {/* Time Series */}
-                    {analysisResults.timeSeries && (
+                    {(analysisResults?.timeSeries || liveSeries.length > 0) && (
                       <Card className="bg-white/70 backdrop-blur-sm">
                         <CardHeader>
                           <CardTitle className="text-lg">Session Timeline</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <Line
-                            data={{
-                              labels: analysisResults.timeSeries.map(p => `${p.t}s`),
-                              datasets: [
-                                { label: 'Arousal', data: analysisResults.timeSeries.map(p => p.arousal), borderColor: '#a855f7', backgroundColor: 'rgba(168,85,247,0.2)', tension: 0.3 },
-                                { label: 'Connection', data: analysisResults.timeSeries.map(p => p.connection), borderColor: '#06b6d4', backgroundColor: 'rgba(6,182,212,0.2)', tension: 0.3 },
-                                { label: 'Communication', data: analysisResults.timeSeries.map(p => p.communication), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.2)', tension: 0.3 }
-                              ]
-                            }}
-                            options={{
-                              responsive: true,
-                              plugins: { legend: { position: 'bottom' } },
-                              scales: { y: { min: 0, max: 100 } }
-                            }}
-                          />
+                          {(() => {
+                            const source = (analysisResults?.timeSeries || liveSeries) as { t: number; arousal: number; connection: number; communication: number }[]
+                            const smooth = (arr: number[]) => {
+                              if (!smoothing || arr.length < 3) return arr
+                              const win = 3
+                              const out: number[] = []
+                              for (let i = 0; i < arr.length; i++) {
+                                const start = Math.max(0, i - Math.floor(win / 2))
+                                const end = Math.min(arr.length, i + Math.ceil(win / 2))
+                                const slice = arr.slice(start, end)
+                                out.push(slice.reduce((a, b) => a + b, 0) / slice.length)
+                              }
+                              return out
+                            }
+                            const labels = source.map(p => `${p.t}s`)
+                            const datasets: any[] = []
+                            if (showArousal) datasets.push({ label: 'Arousal', data: smooth(source.map(p => p.arousal)), borderColor: '#a855f7', backgroundColor: 'rgba(168,85,247,0.2)', tension: 0.3 })
+                            if (showConnection) datasets.push({ label: 'Connection', data: smooth(source.map(p => p.connection)), borderColor: '#06b6d4', backgroundColor: 'rgba(6,182,212,0.2)', tension: 0.3 })
+                            if (showCommunication) datasets.push({ label: 'Communication', data: smooth(source.map(p => p.communication)), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.2)', tension: 0.3 })
+                            return (
+                              <div>
+                                <Line
+                                  data={{ labels, datasets }}
+                                  options={{ responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { min: 0, max: 100 } } }}
+                                />
+                                <div className="mt-3 flex gap-2">
+                                  <Button size="sm" variant="outline" onClick={() => setLiveSeries([])}>Clear Series</Button>
+                                  <Button size="sm" variant="outline" onClick={() => setAnalysisResults(prev => (prev ? { ...prev, timeSeries: [] } as any : prev))}>Clear Server Series</Button>
+                                </div>
+                              </div>
+                            )
+                          })()}
                         </CardContent>
                       </Card>
                     )}
