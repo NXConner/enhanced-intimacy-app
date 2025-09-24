@@ -17,7 +17,10 @@
     "cap:assets": "npx --yes cap copy android",
     "cap:doctor": "npx --yes cap doctor",
     "android:assembleDebug": "cd android && ./gradlew assembleDebug | cat",
-    "android:assembleRelease": "cd android && ./gradlew assembleRelease | cat"
+    "android:assembleRelease": "cd android && ./gradlew assembleRelease | cat",
+    "ms:dev": "cd mobile-static && npm install && npm run dev",
+    "ms:build": "cd mobile-static && npm install && npm run build",
+    "ms:export:sync": "npm run ms:build && rm -rf out && mkdir -p out && cp -r mobile-static/dist/* out/ && npx --yes cap sync"
   },
   "prisma": {
     "seed": "tsx --require dotenv/config scripts/seed.ts"

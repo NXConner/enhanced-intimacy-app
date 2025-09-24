@@ -5,5 +5,8 @@ android/app/build/
 android/build/
 app-debug.apk
 app-release.apk
+app-debug-offline.apk
+app-release-offline.apk
 android/app/src/main/assets/public/
 android/app/src/main/assets/capacitor.config.json
+mobile-static/dist/

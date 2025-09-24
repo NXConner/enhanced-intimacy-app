@@ -36,8 +36,8 @@ const config: CapacitorConfig = {
 export default config;
 ```
 
-- To ship fully offline, export the Next.js app to `out/` and remove the `server` block.
-- Note: Next.js `rewrites` do not work with static export; update routes or keep server mode.
+- Online mode (kept): Uses `server.url` to load `http://10.0.2.2:3000` in Android emulator/device.
+- Offline packaging (new, separate): Use `mobile-static/` to export static files and sync to `out/`.
 
 ## Common commands
 
@@ -63,6 +63,20 @@ npm run android:assembleRelease
 
 ```bash
 npm run cap:open:android
+
+### Mobile static (Option 2)
+
+- Dev the static app:
+
+```bash
+npm run ms:dev
+```
+
+- Build and sync static assets to Capacitor:
+
+```bash
+npm run ms:export:sync
+```
 ```
 
 ## APK output paths
