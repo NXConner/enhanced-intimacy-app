@@ -18,11 +18,20 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData()
-    const video = formData.get('video')
+    const video = formData.get('video') as File | null
     const modelId = (formData.get('modelId') as string) || 'video-analysis'
 
     if (!video || !(video instanceof File)) {
       return NextResponse.json({ error: 'Video file is required' }, { status: 400 })
+    }
+
+    // Basic validation: type and size (<= 150MB)
+    const maxBytes = 150 * 1024 * 1024
+    if (!video.type.startsWith('video/')) {
+      return NextResponse.json({ error: 'Invalid file type. Please upload a video.' }, { status: 400 })
+    }
+    if (video.size > maxBytes) {
+      return NextResponse.json({ error: 'File too large. Max 150MB.' }, { status: 413 })
     }
 
     // Note: We do not persist or upload the video. Processing is local/mocked.

@@ -18,11 +18,20 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData()
-    const image = formData.get('image')
+    const image = formData.get('image') as File | null
     const modelId = (formData.get('modelId') as string) || 'image-analysis'
 
     if (!image || !(image instanceof File)) {
       return NextResponse.json({ error: 'Image file is required' }, { status: 400 })
+    }
+
+    // Basic validation: type and size (<= 20MB)
+    const maxBytes = 20 * 1024 * 1024
+    if (!image.type.startsWith('image/')) {
+      return NextResponse.json({ error: 'Invalid file type. Please upload an image.' }, { status: 400 })
+    }
+    if (image.size > maxBytes) {
+      return NextResponse.json({ error: 'File too large. Max 20MB.' }, { status: 413 })
     }
 
     await tensorFlowManager.loadModel(modelId)
