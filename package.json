@@ -3,6 +3,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:studio": "cd external/size-sync-studio && npm install && VITE_APP_BASENAME=/studio VITE_API_BASE=/studio/api npm run dev",
+    "dev:studio:api": "cd external/size-sync-studio && npm run server",
+    "dev:studio:all": "concurrently \"npm run dev:studio:api\" \"npm run dev:studio\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -11,6 +14,7 @@
     "seed": "tsx --require dotenv/config scripts/seed.ts"
   },
   "devDependencies": {
+    "concurrently": "^9.1.2",
     "@next/swc-wasm-nodejs": "13.5.1",
     "@types/node": "20.6.2",
     "@types/react": "18.2.22",

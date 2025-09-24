@@ -1,0 +1,3 @@
+[submodule "external/size-sync-studio"]
+	path = external/size-sync-studio
+	url = https://github.com/NXConner/size-sync-studio.git
