@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData()
     const video = formData.get('video')
+    const modelId = (formData.get('modelId') as string) || 'video-analysis'
 
     if (!video || !(video instanceof File)) {
       return NextResponse.json({ error: 'Video file is required' }, { status: 400 })
@@ -26,8 +27,8 @@ export async function POST(request: NextRequest) {
 
     // Note: We do not persist or upload the video. Processing is local/mocked.
     // Load and run mocked TensorFlow Lite inference
-    await tensorFlowManager.loadModel('video-analysis')
-    const videoInference = await tensorFlowManager.runInference('video-analysis', null)
+    await tensorFlowManager.loadModel(modelId)
+    const videoInference = await tensorFlowManager.runInference(modelId, null)
 
     // Derive simple metrics from mocked predictions
     const [lowProb = 0.2, mediumProb = 0.4, highProb = 0.4] = videoInference.predictions || []
@@ -58,6 +59,20 @@ export async function POST(request: NextRequest) {
     const feedback =
       'Your session indicates strong mutual engagement with balanced pacing. Consider incorporating mindful breathing and periodic verbal check-ins. Gentle position transitions may enhance comfort and variety.'
 
+    // Optional time-series mock (e.g., per 1s over ~10s)
+    const timeSeries = Array.from({ length: 10 }, (_, i) => ({
+      t: i,
+      arousal: Math.max(40, Math.min(100, Math.round(arousalLevel + (Math.random() - 0.5) * 10))),
+      connection: Math.max(50, Math.min(100, Math.round(emotionalConnection + (Math.random() - 0.5) * 8))),
+      communication: Math.max(55, Math.min(100, Math.round(communication + (Math.random() - 0.5) * 7)))
+    }))
+
+    const explanations = {
+      arousalLevel: 'Estimated from motion cadence and posture dynamics; higher indicates elevated arousal cues.',
+      emotionalConnection: 'Derived from inferred synchrony and steady gaze cues over time.',
+      communication: 'Reflects pacing adjustments and inferred acknowledgment patterns.'
+    }
+
     return NextResponse.json({
       arousalLevel,
       emotionalConnection,
@@ -65,7 +80,10 @@ export async function POST(request: NextRequest) {
       recommendations,
       positions,
       feedback,
-      confidence
+      confidence,
+      modelId,
+      timeSeries,
+      explanations
     })
   } catch (error) {
     console.error('Video analysis error:', error)
