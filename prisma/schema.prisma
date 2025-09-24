@@ -65,6 +65,8 @@ model User {
   notifications               Notification[]
   feedbackSubmissions         FeedbackSubmission[]
   userPositionRecommendations UserPositionRecommendation[]
+  mediaVault                  MediaVault?
+  mediaItems                  MediaItem[]
 
   @@map("users")
 }
@@ -274,4 +276,42 @@ model FeedbackSubmission {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("feedback_submissions")
+}
+
+// Private, lockable media vault for each user
+model MediaVault {
+  id            String     @id @default(cuid())
+  userId        String     @unique
+  passcodeHash  String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaItems MediaItem[]
+
+  @@map("media_vaults")
+}
+
+// Individual media items stored in the vault
+model MediaItem {
+  id               String   @id @default(cuid())
+  userId           String
+  vaultId          String
+  originalName     String
+  storedFilename   String
+  mimeType         String
+  fileSizeBytes    Int
+  widthPixels      Int?
+  heightPixels     Int?
+  durationSeconds  Float?
+  storagePath      String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vault MediaVault @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([vaultId])
+  @@map("media_items")
 }
