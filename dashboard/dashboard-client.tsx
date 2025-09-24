@@ -24,7 +24,8 @@ import {
   Sparkles,
   Users,
   Eye,
-  BarChart3
+  BarChart3,
+  Image as ImageIcon
 } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -107,6 +108,13 @@ export default function DashboardClient({ user, recentSessions, progressData, pr
                     icon: MessageCircle,
                     href: '/dashboard/ai-coach',
                     color: 'from-blue-500 to-cyan-500'
+                  },
+                  {
+                    title: 'Private Gallery',
+                    description: 'Locked media vault for images and videos',
+                    icon: ImageIcon,
+                    href: '/dashboard/gallery',
+                    color: 'from-fuchsia-500 to-pink-500'
                   },
                   {
                     title: 'AI Video Analysis',
