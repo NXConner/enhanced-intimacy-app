@@ -5,6 +5,10 @@ This repo is configured to build Android APKs using Capacitor.
 - Debug APK: `app-debug.apk` (at repo root)
 - Release APK (unsigned): `app-release.apk` (at repo root)
 
+## Setup guide
+
+For installing dependencies, environment setup, running, and building the web app, see [SETUP.md](./SETUP.md).
+
 ## Prerequisites
 
 - Java 17+ (JDK). The Gradle wrapper will handle Gradle version.
