@@ -39,6 +39,12 @@ export class TensorFlowLiteManager {
         outputClasses: ['low_arousal', 'medium_arousal', 'high_arousal'],
         quantized: true
       },
+      'image-analysis': {
+        modelPath: '/models/image_analysis_optimized.tflite',
+        inputShape: [1, 224, 224, 3],
+        outputClasses: ['engagement', 'affect', 'pose_confidence'],
+        quantized: true
+      },
       'arousal-detection': {
         modelPath: '/models/arousal_detection_quantized.tflite',
         inputShape: [1, 128, 128, 3],
@@ -117,6 +123,10 @@ export class TensorFlowLiteManager {
         case 'video-analysis':
           predictions = [Math.random() * 0.3, Math.random() * 0.4 + 0.3, Math.random() * 0.3 + 0.4]
           confidence = 0.85 + Math.random() * 0.15
+          break
+        case 'image-analysis':
+          predictions = [Math.random(), Math.random(), Math.random()]
+          confidence = 0.86 + Math.random() * 0.12
           break
         case 'arousal-detection':
           predictions = [Math.random() * 0.8 + 0.2]
