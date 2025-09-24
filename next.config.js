@@ -14,6 +14,15 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
   images: { unoptimized: true },
+  async rewrites() {
+    return [
+      // Proxy Size Sync Studio API mounted at /studio/api -> local Express API
+      { source: '/studio/api/:path*', destination: 'http://localhost:3001/api/:path*' },
+      // Proxy Size Sync Studio frontend mounted at /studio -> local Vite dev server
+      { source: '/studio', destination: 'http://localhost:8080' },
+      { source: '/studio/:path*', destination: 'http://localhost:8080/:path*' },
+    ]
+  },
 };
 
 module.exports = nextConfig;

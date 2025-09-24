@@ -103,6 +103,13 @@ export default function DashboardClient({ user, recentSessions, progressData, pr
               <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
                 {[
                   {
+                    title: 'Size Sync Studio',
+                    description: 'Open the Size Sync Studio prototype',
+                    icon: Sparkles,
+                    href: '/studio',
+                    color: 'from-amber-500 to-orange-500'
+                  },
+                  {
                     title: 'AI Coaching Chat',
                     description: 'Get personalized guidance and advice',
                     icon: MessageCircle,
