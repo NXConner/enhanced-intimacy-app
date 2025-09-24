@@ -66,12 +66,28 @@ export default function VideoAnalysisClient() {
   const [availableModels, setAvailableModels] = useState<string[]>(['video-analysis'])
   const [selectedModel, setSelectedModel] = useState<string>('video-analysis')
   const [thumbnails, setThumbnails] = useState<string[]>([])
+  const [liveSeries, setLiveSeries] = useState<{ t: number; arousal: number; connection: number; communication: number }[]>([])
+  const workerRef = useRef<Worker | null>(null)
+  const frameTimerRef = useRef<number | null>(null)
   
   const videoRef = useRef<HTMLVideoElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
   useEffect(() => {
+    // Initialize on-device analysis worker (mocked)
+    try {
+      if (typeof window !== 'undefined' && !workerRef.current) {
+        const worker = new Worker(new URL('../../workers/video-analysis.worker.ts', import.meta.url))
+        worker.onmessage = (e: MessageEvent) => {
+          if (e.data?.type === 'metrics' && e.data?.payload) {
+            const m = e.data.payload as { t: number; arousal: number; connection: number; communication: number }
+            setLiveSeries(prev => [...prev, m].slice(-60))
+          }
+        }
+        workerRef.current = worker
+      }
+    } catch {}
     // Load available models
     ;(async () => {
       try {
@@ -148,6 +164,11 @@ export default function VideoAnalysisClient() {
     recorder.start()
     setMediaRecorder(recorder)
     setIsRecording(true)
+    setLiveSeries([])
+    if (frameTimerRef.current) window.clearInterval(frameTimerRef.current)
+    frameTimerRef.current = window.setInterval(() => {
+      workerRef.current?.postMessage({ type: 'frame' })
+    }, 1000)
 
     toast({
       title: 'Recording Started',
@@ -163,6 +184,10 @@ export default function VideoAnalysisClient() {
     }
     
     stopCamera()
+    if (frameTimerRef.current) {
+      window.clearInterval(frameTimerRef.current)
+      frameTimerRef.current = null
+    }
   }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -184,7 +209,7 @@ export default function VideoAnalysisClient() {
     if (!ctx) return
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
     const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
-    setThumbnails(prev => [dataUrl, ...prev].slice(0, 8))
+    setThumbnails((prev) => [dataUrl, ...prev].slice(0, 8))
   }
 
   const generateThumbnailFromFile = (file: File) => {
@@ -201,7 +226,7 @@ export default function VideoAnalysisClient() {
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
         const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
-        setThumbnails(prev => [dataUrl, ...prev].slice(0, 8))
+        setThumbnails((prev) => [dataUrl, ...prev].slice(0, 8))
       }
       URL.revokeObjectURL(url)
     })
