@@ -8,19 +8,28 @@
     "dev:studio:all": "concurrently \"npm run dev:studio:api\" \"npm run dev:studio\"",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "cap:init": "npx --yes cap init app app.com.example --web-dir=out",
+    "cap:add:android": "npx --yes cap add android",
+    "cap:sync": "npx --yes cap sync",
+    "cap:open:android": "npx --yes cap open android",
+    "cap:copy": "npx --yes cap copy",
+    "cap:assets": "npx --yes cap copy android",
+    "cap:doctor": "npx --yes cap doctor",
+    "android:assembleDebug": "cd android && ./gradlew assembleDebug | cat",
+    "android:assembleRelease": "cd android && ./gradlew assembleRelease | cat"
   },
   "prisma": {
     "seed": "tsx --require dotenv/config scripts/seed.ts"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2",
     "@next/swc-wasm-nodejs": "13.5.1",
     "@types/node": "20.6.2",
     "@types/react": "18.2.22",
     "@types/react-dom": "18.2.7",
     "@typescript-eslint/eslint-plugin": "7.0.0",
     "@typescript-eslint/parser": "7.0.0",
+    "concurrently": "^9.1.2",
     "eslint": "^8.57.0",
     "eslint-config-next": "15.3.0",
     "eslint-plugin-prettier": "5.1.3",
@@ -35,6 +44,9 @@
     "typescript": "5.2.2"
   },
   "dependencies": {
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/cli": "^6.2.1",
+    "@capacitor/core": "^6.2.1",
     "@floating-ui/react": "0.26.0",
     "@headlessui/react": "1.7.18",
     "@hookform/resolvers": "3.9.0",
