@@ -80,6 +80,11 @@ export default function VideoAnalysisClient() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
+  // Avoid TSX parsing issues by handling Tabs change via a typed function
+  const handleAnalysisModeChange = (value: string) => {
+    setAnalysisMode(value === 'upload' ? 'upload' : 'live')
+  }
+
   useEffect(() => {
     // Initialize on-device analysis worker (mocked)
     try {
@@ -341,7 +346,7 @@ export default function VideoAnalysisClient() {
       </header>
 
       <div className="container-custom py-6">
-        <Tabs value={analysisMode} onValueChange={(value) => setAnalysisMode(value as 'live' | 'upload')}>
+        <Tabs value={analysisMode} onValueChange={handleAnalysisModeChange}>
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="live">Live Analysis</TabsTrigger>
             <TabsTrigger value="upload">Upload Video</TabsTrigger>

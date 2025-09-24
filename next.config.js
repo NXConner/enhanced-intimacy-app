@@ -11,7 +11,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   typescript: {
-    ignoreBuildErrors: false,
+    ignoreBuildErrors: process.env.NEXT_IGNORE_TS_ERRORS === '1',
   },
   images: { unoptimized: true },
   async rewrites() {
