@@ -1,6 +1,7 @@
 // Enhanced Intimacy Coaching Application Database Schema
 generator client {
     provider = "prisma-client-js"
+    binaryTargets = ["native"]
 }
 
 datasource db {
