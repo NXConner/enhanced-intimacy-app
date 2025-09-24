@@ -1,0 +1,9 @@
+node_modules/
+.next/
+out/
+android/app/build/
+android/build/
+app-debug.apk
+app-release.apk
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
