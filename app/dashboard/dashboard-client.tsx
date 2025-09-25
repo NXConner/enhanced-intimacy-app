@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { signOut } from 'next-auth/react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -25,12 +25,19 @@ import {
   Users,
   Eye,
   BarChart3,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ListChecks,
+  Smile,
+  Plus
 } from 'lucide-react'
 import MoodWidget from './mood/mood-widget'
 import RecommendationsWidget from './recommendations/recommendations-widget'
 import Link from 'next/link'
 import { format } from 'date-fns'
+import { firestore } from '@/lib/firebase'
+import { addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface DashboardClientProps {
   user: any
@@ -42,6 +49,10 @@ interface DashboardClientProps {
 
 export default function DashboardClient({ user, recentSessions, progressData, preferences, partnerId }: DashboardClientProps) {
   const [selectedMetric, setSelectedMetric] = useState('overall_satisfaction')
+  const userId = user?.id
+  const [todayMood, setTodayMood] = useState<string | null>(null)
+  const [goals, setGoals] = useState<Array<{ id: string; goalText: string; status: 'active' | 'completed' }>>([])
+  const [newGoal, setNewGoal] = useState('')
 
   const handleSignOut = () => {
     signOut({ callbackUrl: '/' })
@@ -61,6 +72,20 @@ export default function DashboardClient({ user, recentSessions, progressData, pr
     { name: 'Progress Tracker', description: 'Logged progress for 7 consecutive days', unlocked: progressData?.length >= 7 },
     { name: 'Communication Master', description: 'Improved communication scores by 25%', unlocked: overallProgress >= 7 }
   ]
+
+  useEffect(() => {
+    if (!userId) return
+    const q = query(
+      collection(firestore, 'goals'),
+      where('userIds', 'array-contains', userId),
+      orderBy('createdAt', 'desc')
+    )
+    const unsub = onSnapshot(q, (snap) => {
+      const loaded = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }))
+      setGoals(loaded as any)
+    })
+    return () => unsub()
+  }, [userId])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-purple-50 to-indigo-50">
@@ -186,18 +211,7 @@ export default function DashboardClient({ user, recentSessions, progressData, pr
                     premium: true
                   },
                   {
-                    title: 'Subscription',
-                    description: 'Upgrade to Premium',
-                    icon: Award,
-                    href: '/dashboard/subscription',
-                    color: 'from-amber-500 to-yellow-600'
-                  },
-                  {
-                    title: 'Chat',
-                    description: 'Secure one-on-one messaging',
-                    icon: MessageCircle,
-                    href: '/dashboard/chat',
-                    color: 'from-sky-500 to-blue-600'
+
                   }
                 ].map((action) => (
                   <motion.div
@@ -230,6 +244,93 @@ export default function DashboardClient({ user, recentSessions, progressData, pr
                   </motion.div>
                 ))}
               </div>
+            </motion.div>
+
+            {/* Daily Mood */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.25 }}
+            >
+              <h2 className="text-2xl font-semibold mb-6">Daily Mood</h2>
+              <Card className="bg-white/70 backdrop-blur-sm">
+                <CardContent className="p-6">
+                  <div className="flex flex-wrap gap-2">
+                    {['Happy','Calm','Stressed','Sad','Excited'].map((m) => (
+                      <Button
+                        key={m}
+                        variant={todayMood === m ? 'default' : 'outline'}
+                        onClick={async () => {
+                          if (!userId) return
+                          const today = new Date()
+                          const dateKey = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString()
+                          await addDoc(collection(firestore, 'mood_logs'), {
+                            userId,
+                            mood: m,
+                            date: dateKey,
+                            createdAt: serverTimestamp(),
+                          })
+                          setTodayMood(m)
+                        }}
+                      >
+                        <Smile className="h-4 w-4 mr-1" /> {m}
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Shared Goals */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+            >
+              <h2 className="text-2xl font-semibold mb-6">Shared Goals</h2>
+              <Card className="bg-white/70 backdrop-blur-sm">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex gap-2">
+                    <Input placeholder="Add a goal" value={newGoal} onChange={(e) => setNewGoal(e.target.value)} />
+                    <Button onClick={async () => {
+                      if (!userId || !newGoal.trim()) return
+                      await addDoc(collection(firestore, 'goals'), {
+                        goalText: newGoal.trim(),
+                        status: 'active',
+                        userIds: [userId],
+                        createdAt: serverTimestamp(),
+                      })
+                      setNewGoal('')
+                    }}>
+                      <Plus className="h-4 w-4 mr-1" /> Add
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {goals.map((g) => (
+                      <div key={g.id} className="flex items-center justify-between border rounded-md px-3 py-2 bg-white/60">
+                        <div className="flex items-center gap-2">
+                          <ListChecks className="h-4 w-4 text-primary" />
+                          <span className="text-sm">{g.goalText}</span>
+                        </div>
+                        <Select value={g.status} onValueChange={async (v: any) => {
+                          await updateDoc(doc(firestore, 'goals', g.id), { status: v })
+                        }}>
+                          <SelectTrigger className="w-[140px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
+                    {goals.length === 0 && (
+                      <p className="text-sm text-muted-foreground">No goals yet. Add your first shared goal.</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </motion.div>
 
             {/* Progress Overview */}
