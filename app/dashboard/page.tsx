@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import DashboardClient from './dashboard-client'
 import { prisma } from '@/lib/db'
+import { getConnectedPartnerId } from '@/lib/partner'
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions)
@@ -13,7 +14,7 @@ export default async function DashboardPage() {
   }
 
   // Fetch user data and recent activity
-  const [user, recentSessions, progressData, preferences] = await Promise.all([
+  const [user, recentSessions, progressData, preferences, partnerId] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id }
     }),
@@ -35,7 +36,8 @@ export default async function DashboardPage() {
     }),
     prisma.coachingPreferences.findUnique({
       where: { userId: session.user.id }
-    })
+    }),
+    getConnectedPartnerId(session.user.id)
   ])
 
   return (
@@ -44,6 +46,7 @@ export default async function DashboardPage() {
       recentSessions={recentSessions}
       progressData={progressData}
       preferences={preferences}
+      partnerId={partnerId}
     />
   )
 }
