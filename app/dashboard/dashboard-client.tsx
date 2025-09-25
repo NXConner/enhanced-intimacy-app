@@ -30,6 +30,8 @@ import {
   Smile,
   Plus
 } from 'lucide-react'
+import MoodWidget from './mood/mood-widget'
+import RecommendationsWidget from './recommendations/recommendations-widget'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { firestore } from '@/lib/firebase'
@@ -42,9 +44,10 @@ interface DashboardClientProps {
   recentSessions: any[]
   progressData: any[]
   preferences: any
+  partnerId?: string | null
 }
 
-export default function DashboardClient({ user, recentSessions, progressData, preferences }: DashboardClientProps) {
+export default function DashboardClient({ user, recentSessions, progressData, preferences, partnerId }: DashboardClientProps) {
   const [selectedMetric, setSelectedMetric] = useState('overall_satisfaction')
   const userId = user?.id
   const [todayMood, setTodayMood] = useState<string | null>(null)
@@ -178,12 +181,26 @@ export default function DashboardClient({ user, recentSessions, progressData, pr
                     color: 'from-green-500 to-emerald-500'
                   },
                   {
+                    title: 'Quizzes',
+                    description: 'Discover your Love Language and more',
+                    icon: Award,
+                    href: '/dashboard/quizzes',
+                    color: 'from-teal-500 to-emerald-600'
+                  },
+                  {
                     title: 'Advanced Analytics',
                     description: 'Detailed insights and progress tracking',
                     icon: BarChart3,
                     href: '/dashboard/analytics',
                     color: 'from-indigo-500 to-blue-500',
                     premium: true
+                  },
+                  {
+                    title: 'Calendar',
+                    description: 'Shared events and intimacy tracking',
+                    icon: Calendar,
+                    href: '/dashboard/calendar',
+                    color: 'from-blue-500 to-indigo-500'
                   },
                   {
                     title: 'AI Training Status',
@@ -194,32 +211,7 @@ export default function DashboardClient({ user, recentSessions, progressData, pr
                     premium: true
                   },
                   {
-                    title: 'Calendar',
-                    description: 'Shared events & intimacy tracking',
-                    icon: Calendar,
-                    href: '/dashboard/calendar',
-                    color: 'from-pink-500 to-rose-500'
-                  },
-                  {
-                    title: 'Chat',
-                    description: 'Secure 1:1 messaging',
-                    icon: MessageCircle,
-                    href: '/dashboard/chat',
-                    color: 'from-sky-500 to-indigo-500'
-                  },
-                  {
-                    title: 'Quizzes',
-                    description: 'Discover your love language',
-                    icon: Award,
-                    href: '/dashboard/quizzes',
-                    color: 'from-emerald-500 to-teal-500'
-                  },
-                  {
-                    title: 'Cycle Tracker',
-                    description: 'Track cycles & predictions',
-                    icon: Activity,
-                    href: '/dashboard/cycle-tracker',
-                    color: 'from-rose-600 to-fuchsia-600'
+
                   }
                 ].map((action) => (
                   <motion.div
@@ -393,6 +385,37 @@ export default function DashboardClient({ user, recentSessions, progressData, pr
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* Recommendations */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.0 }}
+            >
+              <RecommendationsWidget userId={user?.id} partnerId={partnerId} />
+            </motion.div>
+            {/* Goals Widget */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.05 }}
+            >
+              <Card className="bg-white/70 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Target className="h-5 w-5 mr-2" />
+                    Shared Goals
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm text-muted-foreground">
+                    Manage your goals on the goals page.
+                  </div>
+                  <Link href="/dashboard/goals">
+                    <Button size="sm" className="mt-3" variant="outline">Open Goals</Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </motion.div>
             {/* Recent Activity */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -478,7 +501,7 @@ export default function DashboardClient({ user, recentSessions, progressData, pr
               </Card>
             </motion.div>
 
-            {/* Quick Stats */}
+          {/* Quick Stats */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -522,6 +545,15 @@ export default function DashboardClient({ user, recentSessions, progressData, pr
                   </div>
                 </CardContent>
               </Card>
+            </motion.div>
+            {/* Mood Widget */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.35 }}
+              className="mt-6"
+            >
+              <MoodWidget userId={user?.id} />
             </motion.div>
           </div>
         </div>

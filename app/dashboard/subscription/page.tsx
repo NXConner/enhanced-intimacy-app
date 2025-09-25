@@ -6,6 +6,6 @@ import SubscriptionClient from './subscription-client'
 export default async function SubscriptionPage() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) redirect('/auth/signin')
-  return <SubscriptionClient />
+
 }
 
