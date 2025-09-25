@@ -47,8 +47,30 @@ NEXT_OUTPUT_MODE=""                   # set to "export" only if doing static exp
 ABACUSAI_API_KEY=""                   # used by /app/api/ai-coach route
 ```
 
+#### Supabase (recommended Postgres setup)
+
+For Supabase, use the pooled connection for your app at runtime and a direct connection for migrations:
+
+```bash
+# Pooled (PgBouncer) — runtime
+DATABASE_URL="postgresql://USER:PASSWORD@POOL_HOST:6543/postgres?sslmode=require&pgbouncer=true&connection_limit=1&schema=public"
+
+# Direct — migrations
+DIRECT_URL="postgresql://USER:PASSWORD@DB_HOST:5432/postgres?sslmode=require&schema=public"
+```
+
+Update Prisma datasource to use `DIRECT_URL` for migrations:
+
+```12:16:/workspace/prisma/schema.prisma
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+    directUrl = env("DIRECT_URL")
+}
+```
+
 Notes:
-- `DATABASE_URL` is consumed by Prisma (`prisma/schema.prisma`).
+- `DATABASE_URL` is consumed by Prisma (`prisma/schema.prisma`). If using Supabase, also set `DIRECT_URL`.
 - `NEXTAUTH_SECRET` is required for production with NextAuth.
 - Keep `NEXT_OUTPUT_MODE` empty for a normal server build. Only set `export` if you understand the static export limitations.
 
