@@ -67,6 +67,10 @@ model User {
   userPositionRecommendations UserPositionRecommendation[]
   mediaVault                  MediaVault?
   mediaItems                  MediaItem[]
+  analysisRecords             AnalysisRecord[]
+  consentLogs                 ConsentLog[]
+  passwordResetTokens         PasswordResetToken[]
+  emailVerificationTokens     EmailVerificationToken[]
 
   @@map("users")
 }
@@ -314,4 +318,62 @@ model MediaItem {
   @@index([userId, createdAt])
   @@index([vaultId])
   @@map("media_items")
+}
+
+model AnalysisRecord {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // image | video
+  modelId     String
+  confidence  Float
+  resultJson  Json
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("analysis_records")
+}
+
+model ConsentLog {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // privacy_policy, terms, marketing
+  version   String?
+  accepted  Boolean
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("consent_logs")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("email_verification_tokens")
 }

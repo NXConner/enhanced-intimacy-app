@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { tensorFlowManager } from '@/lib/tensorflow-lite'
+import { prisma } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
       poseConfidence: 'Pose estimation confidence derived from visible keypoints.'
     }
 
-    return NextResponse.json({
+    const payload = {
       engagement: engagementScore,
       affect: affectScore,
       poseConfidence,
@@ -62,7 +63,20 @@ export async function POST(request: NextRequest) {
       confidence,
       modelId,
       explanations
-    })
+    }
+
+    // Persist minimal analysis record (non-sensitive numeric metadata only)
+    await prisma.analysisRecord.create({
+      data: {
+        userId: session.user.id,
+        type: 'image',
+        modelId,
+        confidence,
+        resultJson: payload
+      }
+    }).catch(() => {})
+
+    return NextResponse.json(payload)
   } catch (error) {
     console.error('Image analysis error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

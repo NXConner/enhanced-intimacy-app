@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { tensorFlowManager } from '@/lib/tensorflow-lite'
+import { prisma } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
       communication: 'Reflects pacing adjustments and inferred acknowledgment patterns.'
     }
 
-    return NextResponse.json({
+    const payload = {
       arousalLevel,
       emotionalConnection,
       communication,
@@ -94,7 +95,20 @@ export async function POST(request: NextRequest) {
       modelId,
       timeSeries,
       explanations
-    })
+    }
+
+    // Persist minimal analysis record (non-sensitive numeric metadata only)
+    await prisma.analysisRecord.create({
+      data: {
+        userId: session.user.id,
+        type: 'video',
+        modelId,
+        confidence,
+        resultJson: payload
+      }
+    }).catch(() => {})
+
+    return NextResponse.json(payload)
   } catch (error) {
     console.error('Video analysis error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

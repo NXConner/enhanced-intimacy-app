@@ -1,3 +1,43 @@
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
+import { NextRequest, NextResponse } from 'next/server'
+import { tensorFlowManager, ModelUtils } from '@/lib/tensorflow-lite'
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  const action = searchParams.get('action') || 'models'
+
+  try {
+    if (action === 'models') {
+      const models = tensorFlowManager.getAvailableModels().map(modelId => ({ modelId }))
+      return NextResponse.json({ models })
+    }
+
+    if (action === 'model-info') {
+      const modelId = searchParams.get('modelId') || 'video-analysis'
+      const info = await tensorFlowManager.getModelInfo(modelId)
+      return NextResponse.json({ info })
+    }
+
+    if (action === 'system-stats') {
+      const stats = await tensorFlowManager.getSystemStats()
+      return NextResponse.json({ stats })
+    }
+
+    if (action === 'benchmark') {
+      const modelId = searchParams.get('modelId') || 'video-analysis'
+      const iterations = Number(searchParams.get('iterations') || 5)
+      const results = await ModelUtils.benchmarkModel(modelId, iterations)
+      return NextResponse.json({ results })
+    }
+
+    return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || 'Internal error' }, { status: 500 })
+  }
+}
+
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
