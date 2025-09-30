@@ -315,3 +315,18 @@ model MediaItem {
   @@index([vaultId])
   @@map("media_items")
 }
+
+model AnalysisRecord {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // image | video
+  modelId     String
+  confidence  Float
+  resultJson  Json
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("analysis_records")
+}
