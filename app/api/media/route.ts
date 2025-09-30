@@ -5,8 +5,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { createWriteStream, promises as fs } from 'fs'
+import { promises as fs } from 'fs'
 import path from 'path'
+import crypto from 'crypto'
 
 const UNLOCK_COOKIE_NAME = 'vault_unlocked'
 const UPLOADS_DIR = path.join(process.cwd(), 'Uploads')
@@ -57,7 +58,23 @@ export async function POST(request: NextRequest) {
     await fs.mkdir(userDir, { recursive: true })
 
     const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
+    let buffer = Buffer.from(arrayBuffer)
+
+    // Optional at-rest encryption using AES-256-GCM
+    const encKey = process.env.VAULT_ENCRYPTION_KEY || process.env.MEDIA_ENCRYPTION_KEY
+    if (encKey) {
+      try {
+        const key = parseEncryptionKey(encKey)
+        const iv = crypto.randomBytes(12) // GCM recommended IV size
+        const cipher = crypto.createCipheriv('aes-256-gcm', key, iv)
+        const encrypted = Buffer.concat([cipher.update(buffer), cipher.final()])
+        const authTag = cipher.getAuthTag()
+        const header = Buffer.from('VAULTv1')
+        buffer = Buffer.concat([header, iv, authTag, encrypted])
+      } catch (e) {
+        console.error('Encryption failed, storing plaintext:', e)
+      }
+    }
 
     const storedFilename = `${Date.now()}_${Math.random().toString(36).slice(2)}_${file.name}`
     const filePath = path.join(userDir, storedFilename)
@@ -115,4 +132,18 @@ export async function DELETE(request: NextRequest) {
     console.error('Delete error:', error)
     return NextResponse.json({ error: 'Delete failed' }, { status: 500 })
   }
+}
+
+function parseEncryptionKey(value: string): Buffer {
+  const trimmed = String(value).trim()
+  // Support base64 (preferred) or hex
+  if (/^[A-Fa-f0-9]{64}$/.test(trimmed)) {
+    return Buffer.from(trimmed, 'hex')
+  }
+  const b64 = trimmed.replace(/^base64:/, '')
+  const buf = Buffer.from(b64, 'base64')
+  if (buf.length !== 32) {
+    throw new Error('VAULT_ENCRYPTION_KEY must be 32 bytes (base64 or 64-char hex)')
+  }
+  return buf
 }
