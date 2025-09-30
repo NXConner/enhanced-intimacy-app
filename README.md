@@ -426,5 +426,53 @@ $ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner sign \
 
 ## Notes
 
+## API Endpoints Overview
+
+Key implemented endpoints (authenticated unless noted):
+
+- Health and Observability
+  - GET `/api/health` — uptime/status check
+  - Request logging via `middleware.ts` for `/api/*`
+
+- Coaching
+  - POST `/api/coaching/start-session` — start a session
+  - POST `/api/coaching/end-session` — end a session, duration tracking
+  - POST `/api/coaching/log-event` — log coaching feedback events
+  - POST `/api/ai-coach` — streaming AI coach via Abacus AI
+
+- Media Vault
+  - POST `/api/media-vault/passcode` — set/update passcode
+  - POST `/api/media-vault/unlock` — unlock (sets cookie)
+  - DELETE `/api/media-vault/unlock` — lock
+  - GET/POST/DELETE `/api/media` — list, upload, delete vault items
+
+- Analysis (mocked on-device style)
+  - POST `/api/image-analysis` — returns metrics and persists non-sensitive metadata
+  - POST `/api/video-analysis` — returns metrics/time-series and persists metadata
+  - GET/POST `/api/ai/training` — federated/training controls (mock manager)
+  - GET/POST `/api/ai/tensorflow` — model management, benchmarking, privacy ops
+
+- Privacy & Compliance
+  - GET/POST `/api/privacy/consent` — log and list consents
+  - POST `/api/privacy/export` — export user data bundle
+  - POST `/api/privacy/erase` — erase user and dependent records
+
+- Account
+  - POST/PUT `/api/account/verify-email` — request token and verify email
+  - POST/PUT `/api/account/password-reset` — request token and reset password
+
+- Billing (Stripe)
+  - POST `/api/stripe/create-checkout-session` — start a subscription checkout
+  - POST `/api/stripe/webhook` — handle subscription lifecycle events
+
+- Feedback
+  - GET/POST `/api/feedback` — submit and list feedback submissions
+
+Notes:
+- Some endpoints require `subscriptionTier` to be `premium` or `professional`.
+- AI inference and training endpoints are mocked to simulate local/on-device behavior.
+- Vault encryption: set `VAULT_ENCRYPTION_KEY` (32-byte base64 or 64-char hex) to enable AES-256-GCM at-rest encryption for files stored via `/api/media`.
+
+
 - `.gitignore` excludes large artifacts: `node_modules/`, `.next/`, `out/`, and Android build outputs.
 - The Android platform is under `android/`; Capacitor config is in `capacitor.config.ts`.
