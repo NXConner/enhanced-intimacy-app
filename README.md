@@ -2,8 +2,8 @@
 
 This repo is configured to build Android APKs using Capacitor.
 
-- Debug APK: `app-debug.apk` (at repo root)
-- Release APK (unsigned): `app-release.apk` (at repo root)
+- Debug APK: `android/app/build/outputs/apk/debug/app-debug.apk`
+- Release APK (unsigned): `android/app/build/outputs/apk/release/app-release-unsigned.apk`
 
 ## Setup, Run, and Build Guide
 
@@ -163,6 +163,24 @@ APK outputs (Gradle default):
 
 To ship fully offline, use static export (`NEXT_OUTPUT_MODE=export npm run build`), set `webDir: 'out'` in `capacitor.config.ts` (already set), and remove the `server` block.
 
+#### Quick Android debug build (headless)
+
+If you have Java 17 and Android SDK Build-Tools 34.0.0 installed and `ANDROID_SDK_ROOT` set:
+
+```bash
+# Install deps (use legacy peer deps if needed)
+npm ci --no-audit --no-fund || npm install --no-audit --no-fund --legacy-peer-deps
+
+# Sync Capacitor native project
+npm run cap:sync
+
+# Build debug APK
+npm run android:assembleDebug
+
+# Result:
+ls -lh android/app/build/outputs/apk/debug/app-debug.apk
+```
+
 ### 7) Deploy
 
 - **Netlify**: The repo includes `netlify.toml`:
@@ -181,6 +199,9 @@ To ship fully offline, use static export (`NEXT_OUTPUT_MODE=export npm run build
 - **Database connection errors**: Verify `DATABASE_URL`, that the database is reachable, and run `npx prisma migrate dev` (or `db push`) followed by `npx prisma db seed`.
 - **NextAuth errors in production**: Set `NEXTAUTH_SECRET` (and `NEXTAUTH_URL` if applicable).
 - **Android SDK errors**: Create `android/local.properties` with `sdk.dir=/absolute/path/to/Android/Sdk` and ensure Build Tools 34.0.0 are installed.
+- **npm ERESOLVE peer conflicts**: retry `npm ci` with `--legacy-peer-deps` or use `npm install --legacy-peer-deps`.
+- **Missing Cordova module**: if you see `Project with path ':capacitor-cordova-android-plugins' could not be found`, remove that module from `android/settings.gradle` and from `dependencies` in `android/app/build.gradle`.
+- **Capacitor assets missing**: ensure `npm run cap:sync` was executed. If still failing, ensure `android/app/src/main/assets/` contains `capacitor.config.json` and `capacitor.plugins.json`.
 - **Static export issues**: Some Next.js features (dynamic routes, rewrites) are limited or unsupported when `output: 'export'` is used. Prefer server build unless you need static hosting.
 
 ---
