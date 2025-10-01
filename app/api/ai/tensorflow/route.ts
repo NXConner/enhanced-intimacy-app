@@ -2,44 +2,6 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { tensorFlowManager, ModelUtils } from '@/lib/tensorflow-lite'
-
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  const action = searchParams.get('action') || 'models'
-
-  try {
-    if (action === 'models') {
-      const models = tensorFlowManager.getAvailableModels().map(modelId => ({ modelId }))
-      return NextResponse.json({ models })
-    }
-
-    if (action === 'model-info') {
-      const modelId = searchParams.get('modelId') || 'video-analysis'
-      const info = await tensorFlowManager.getModelInfo(modelId)
-      return NextResponse.json({ info })
-    }
-
-    if (action === 'system-stats') {
-      const stats = await tensorFlowManager.getSystemStats()
-      return NextResponse.json({ stats })
-    }
-
-    if (action === 'benchmark') {
-      const modelId = searchParams.get('modelId') || 'video-analysis'
-      const iterations = Number(searchParams.get('iterations') || 5)
-      const results = await ModelUtils.benchmarkModel(modelId, iterations)
-      return NextResponse.json({ results })
-    }
-
-    return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Internal error' }, { status: 500 })
-  }
-}
-
-
-import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { tensorFlowManager, privacyManager, ModelUtils } from '@/lib/tensorflow-lite'
@@ -98,8 +60,28 @@ export async function GET(req: NextRequest) {
         const compliance = ModelUtils.getModelCompliance(modelId)
         return NextResponse.json({ compliance })
 
-      default:
+      case 'models': {
+        const models = tensorFlowManager.getAvailableModels().map(modelId => ({ modelId }))
+        return NextResponse.json({ models })
+      }
+      case 'model-info': {
+        const id = searchParams.get('modelId') || 'video-analysis'
+        const info = await tensorFlowManager.getModelInfo(id)
+        return NextResponse.json({ info })
+      }
+      case 'system-stats': {
+        const stats = await tensorFlowManager.getSystemStats()
+        return NextResponse.json({ stats })
+      }
+      case 'benchmark': {
+        const id = searchParams.get('modelId') || 'video-analysis'
+        const iterations = parseInt(searchParams.get('iterations') || '10')
+        const benchmark = await ModelUtils.benchmarkModel(id, iterations)
+        return NextResponse.json({ benchmark })
+      }
+      default: {
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+      }
     }
   } catch (error) {
     console.error('TensorFlow API error:', error)
